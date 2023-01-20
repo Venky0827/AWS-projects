@@ -1,0 +1,115 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "AWS template to create vpc and subnet",
+    "Parameters": {
+        "VPCNAME": {
+            "Type": "String",
+            "Description": "Enter vpc name",
+            "Default": "VPC-1"
+        },
+        "SubnetName":{
+            "Type":"String",
+            "Description":"Enter subnet name",
+            "Default":"Subnet-%d"
+        },
+        "IGWNAME":{
+            "Type":"String",
+            "Description":"Enter Internet gateway name",
+            "Default":"IGW-1"
+        },
+        "RoutingTableName":{
+            "Type":"String",
+            "Description":"Enter Routing table Name name",
+            "Default":"Public-RoutingTable-1"
+        }
+    },
+    "Resources": {
+        "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.0.0.0/16",
+                "EnableDnsHostnames": "True",
+                "EnableDnsSupport": "True",
+                "Tags": [{"Key":"Env","Value": "Testing"},{"Key":"Name","Value":{"Ref":"VPCNAME"}}]
+                
+            }
+        },
+        "PublicSubnet" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+               "VpcId" : { "Ref" : "VPC" },
+               "CidrBlock" : "10.0.1.0/24",
+               "AvailabilityZone" : "us-east-1a",
+               "Tags" : [ { "Key" : "stack", "Value" : "Testing" },{"Key":"Name","Value":{"Ref":"SubnetName"}} ]
+              
+            }
+        },
+        "PrivateSubnet" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+               "VpcId" : { "Ref" : "VPC" },
+               "CidrBlock" : "10.0.2.0/24",
+               "AvailabilityZone" : "us-east-1a",
+               "Tags" : [ { "Key" : "stack", "Value" : "Testing" },{"Key":"Name","Value":{"Ref":"SubnetName"}} ]
+              
+            }
+        },
+        "InternetGateway" : {
+            "Type" : "AWS::EC2::InternetGateway",
+            "Properties" : {
+              "Tags" : [ {"Key" : "stack", "Value" : "Testing"},{"Key":"Name","Value":"IGWNAME"}]
+            }
+        },
+        "AttachGateway" : {
+            "Type" : "AWS::EC2::VPCGatewayAttachment",
+            "Properties" : {
+               "VpcId" : { "Ref" : "VPC" },
+               "InternetGatewayId" : { "Ref" : "InternetGateway" }
+            }
+        },
+         "Route" : {
+            "Type" : "AWS::EC2::Route",
+            "DependsOn" : "InternetGateway",
+            "Properties" : {
+               "RouteTableId" : { "Ref" : "RouteTable" },
+               "DestinationCidrBlock" : "0.0.0.0/0",
+               "GatewayId" : { "Ref" : "InternetGateway" }
+            }
+        },
+        "RouteTable" : {
+            "Type" : "AWS::EC2::RouteTable",
+            "Properties" : {
+               "VpcId" : { "Ref" : "VPC" },
+               "Tags" : [ { "Key" : "stack", "Value" : "Testing" },{"Key":"Name","Value":{"Ref":"RoutingTableName"}} ]
+            }
+        },
+        "SubnetRouteTableAssociation" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+               "SubnetId" : {"Ref":"PublicSubnet"},
+               "RouteTableId" : { "Ref" : "RouteTable" }
+            }
+        },
+        "SecurityGroup" : {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+                "GroupDescription" : "Allow http to client host",
+                "VpcId" : {"Ref" : "VPC"},
+                "SecurityGroupIngress" : [{
+                    "IpProtocol" : "tcp",
+                    "FromPort" : 80,
+                    "ToPort" : 80,
+                    "CidrIp" : "0.0.0.0/0"
+                }],
+                "SecurityGroupEgress" : [{
+                    "IpProtocol" : "tcp",
+                    "FromPort" : 80,
+                    "ToPort" : 80,
+                    "CidrIp" : "0.0.0.0/0"
+                }],
+                "Tags":[{"Key":"Name","Value":"VPC-1-sg"}]
+            }
+        }
+                    
+    }
+}
